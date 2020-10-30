@@ -107,4 +107,72 @@ class UserListViewModelTest: RxTest() {
         testObserver.assertNotComplete()
     }
 
+    /**
+     * Local 인터렉터가 있는 뷰모델은 EditText에 글자를 입력하면 Local에서 결과를 Output에 전달해야 한다.
+     */
+    @Test
+    fun getLocalUserListTest() {
+        val param =
+            SearchUsersParam(
+                "magewr",
+                null,
+                null,
+                1,
+                PER_PAGE
+            )
+        Mockito.`when`(localInteractor.getSearchUsers(param)).thenReturn(Single.just(usersResult))
+        Mockito.`when`(favoriteInteractor.subject).thenReturn(PublishSubject.create())
+
+        testViewModel =
+            UserListViewModel(
+                UserListViewModel.Dependency(
+                    localInteractor,
+                    favoriteInteractor
+                )
+            )
+
+        val testObserver = TestObserver<SearchUsersResultModel>()
+        testViewModel.output.getUsersResult.subscribe(testObserver)
+        testViewModel.input.queryChanged.onNext("magewr")
+
+        testObserver.assertNoErrors()
+
+        val result = testObserver.values()[0]
+        Assert.assertThat(result.items[0].login, `is`("magewr"))
+    }
+
+    /**
+     * Local 인터렉터가 있는 뷰모델은 EditText에 빈 값을 입력해도 전체 결과값이 output에 전달되어야 한다.
+     */
+    @Test
+    fun getLocalUserListEmptyTest() {
+        val param =
+            SearchUsersParam(
+                "",
+                null,
+                null,
+                1,
+                PER_PAGE
+            )
+        Mockito.`when`(localInteractor.getSearchUsers(param)).thenReturn(Single.just(usersResult))
+        Mockito.`when`(favoriteInteractor.subject).thenReturn(PublishSubject.create())
+
+        testViewModel =
+            UserListViewModel(
+                UserListViewModel.Dependency(
+                    localInteractor,
+                    favoriteInteractor
+                )
+            )
+
+        val testObserver = TestObserver<SearchUsersResultModel>()
+        testViewModel.output.getUsersResult.subscribe(testObserver)
+        testViewModel.input.queryChanged.onNext("")
+
+        testObserver.assertNoErrors()
+
+        val result = testObserver.values()[0]
+        Assert.assertThat(result.items[0].login, `is`("magewr"))
+    }
+
 }
